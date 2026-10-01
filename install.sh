@@ -28,7 +28,8 @@
 set -Eeuo pipefail
 
 readonly driver_version="610.43.03"
-readonly repo_tarball="https://github.com/xrip/cmp50hx-unlock/archive/refs/heads/master.tar.gz"
+readonly script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly repo_tarball=""
 readonly nvidia_run_url="https://us.download.nvidia.com/XFree86/Linux-x86_64/${driver_version}/NVIDIA-Linux-x86_64-${driver_version}.run"
 # SHA-256 of the .run package above, pinned from the official download.
 readonly nvidia_run_sha256="45e2d4c134a23c35e50f253a4aa63e7e5e8d17e3d185d4a07c8a58e9612ed392"
@@ -166,11 +167,20 @@ if [[ -d "${install_dir}.old-${ts}" ]]; then
     rm -rf "${install_dir}.old-${ts}"
 fi
 
-repo_tar="$(mktemp)"
-log "downloading repository"
-curl -fsSL --retry 3 -o "${repo_tar}" "${repo_tarball}"
-tar -xzf "${repo_tar}" -C "${install_dir}" --strip-components=1
-rm -f "${repo_tar}"
+# If the script is run from within the repository, use local files
+# Otherwise download the repo from GitHub
+if [[ -f "${script_dir}/build.sh" ]]; then
+    log "using local repository at ${script_dir}"
+    if [[ "${script_dir}" != "${install_dir}" ]]; then
+        cp -a "${script_dir}/." "${install_dir}/"
+    fi
+else
+    repo_tar="$(mktemp)"
+    log "downloading repository"
+    curl -fsSL --retry 3 -o "${repo_tar}" "${repo_tarball}"
+    tar -xzf "${repo_tar}" -C "${install_dir}" --strip-components=1
+    rm -f "${repo_tar}"
+fi
 [[ -f "${install_dir}/build.sh" ]] || die "repository layout broken: build.sh missing"
 
 # --- 4. NVIDIA userland (.run, no kernel module) ----------------------------

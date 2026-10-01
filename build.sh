@@ -68,6 +68,8 @@ case "${card}" in
             02-cmp50-rt-core-count.patch
             03-cmp50-rebar.patch
             04-cmp50-pcie-gen2.patch
+            06-cmp50-p2p-enable.patch
+            07-cmp50-p2p-type.patch
         )
         ;;
     *)
