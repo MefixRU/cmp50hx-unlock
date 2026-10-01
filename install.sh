@@ -56,7 +56,8 @@ find_libcuda() {
     return 1
 }
 
-# Apply the libcuda.so.1 patch for mixed-generation P2P
+# Apply the libcuda.so.1 patch for mixed-generation P2P.
+# Automatically selects the correct patch script based on driver version.
 apply_libcuda_patch() {
     local LIBCUDA
     LIBCUDA="$(find_libcuda)" || {
@@ -64,32 +65,55 @@ apply_libcuda_patch() {
         return 0
     }
 
-    local BAK="${LIBCUDA}.bak"
-    local PATCH_SCRIPT="${install_dir}/patches/libcuda/patch-libcuda-p2p.py"
+    # Detect driver version
+    local DRIVER_VER="unknown"
+    if command -v nvidia-smi >/dev/null 2>&1; then
+        DRIVER_VER="$(nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null | head -n1)"
+        if [[ -z "${DRIVER_VER}" ]]; then
+            DRIVER_VER="unknown"
+        fi
+    fi
+    log "detected NVIDIA driver version: ${DRIVER_VER}"
+
+    # Select patch script by major version
+    local major="${DRIVER_VER%%.*}"
+    local PATCH_SCRIPT=""
+    case "${major}" in
+        610|611|612|613|614)
+            PATCH_SCRIPT="${install_dir}/patches/libcuda/patch-libcuda-p2p-610.py"
+            ;;
+        615|616|617|618|619)
+            PATCH_SCRIPT="${install_dir}/patches/libcuda/patch-libcuda-p2p-615.py"
+            ;;
+        *)
+            log "warning: unknown driver major version ${major}, skipping libcuda patch"
+            return 0
+            ;;
+    esac
+
+    if [[ ! -f "${PATCH_SCRIPT}" || ! -x "${PATCH_SCRIPT}" ]]; then
+        die "libcuda patch script not found or not executable: ${PATCH_SCRIPT}"
+    fi
 
     # Check if already patched (backup exists)
+    local BAK="${LIBCUDA}.bak"
     if [[ -f "${BAK}" ]]; then
-        log "libcuda.so.1 already patched (backup at ${BAK}); skipping"
+        log "libcuda already patched (backup exists), skipping"
         return 0
     fi
 
-    if [[ ! -f "${PATCH_SCRIPT}" ]]; then
-        log "WARNING: libcuda patch script not found at ${PATCH_SCRIPT}; skipping"
-        return 0
-    fi
-
-    log "applying libcuda.so.1 patch for mixed-generation P2P (${LIBCUDA})"
+    log "applying libcuda patch for driver ${DRIVER_VER} using $(basename "${PATCH_SCRIPT}")"
 
     # Create backup
-    cp -a "${LIBCUDA}" "${BAK}"
+    sudo cp "${LIBCUDA}" "${BAK}"
     log "created backup at ${BAK}"
 
     # Apply the patch
-    if python3 "${PATCH_SCRIPT}" "${LIBCUDA}"; then
+    if sudo python3 "${PATCH_SCRIPT}" "${LIBCUDA}"; then
         log "libcuda.so.1 patched successfully"
     else
         # Restore from backup on failure
-        cp -a "${BAK}" "${LIBCUDA}"
+        sudo cp "${BAK}" "${LIBCUDA}"
         die "libcuda.so.1 patch failed; restored original from backup"
     fi
 }

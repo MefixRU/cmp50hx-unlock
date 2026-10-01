@@ -1,13 +1,38 @@
 # Mixed-Generation P2P (Turing + Ada, Ada + Blackwell, etc.)
 
 Peer-to-peer GPU memory access between cards of different GPU generations is
-supported by this repository via the `patch-libcuda-p2p.py` script. The script
-patches `libcuda.so.1` to enable P2P where the stock driver rejects mixed-architecture
+supported by this repository via the libcuda patch scripts. These scripts
+patch `libcuda.so.1` to enable P2P where the stock driver rejects mixed-architecture
 pairs (e.g., CMP 50HX on TU102/Turing + RTX 4070 on AD103/Ada).
 
 The kernel-side patches (01–07) handle the PCIe link, ReBAR, and P2P enable/type
 settings. The `libcuda.so.1` patch removes the architecture version check inside
 the CUDA runtime library.
+
+## Which libcuda patch do I need?
+
+The `libcuda.so.1` binary differs across NVIDIA driver major versions. This repository
+ships two patch scripts, each targeting a specific driver version:
+
+| Driver version | Patch script |
+|----------------|--------------|
+| 610.x          | `patch-libcuda-p2p-610.py` |
+| 615.x          | `patch-libcuda-p2p-615.py` |
+
+When you run `install.sh`, it automatically detects your installed driver version
+via `nvidia-smi` and selects the appropriate patch. You do not need to manually
+choose. The patch script itself also embeds the exact driver version (e.g., `610.43.03`
+or `615.71.09`) in its docstring for reference.
+
+If you are manually applying a patch, use the script that matches your driver's
+major version:
+```bash
+# For driver 610.43.03
+sudo python3 patches/libcuda/patch-libcuda-p2p-610.py /usr/lib/x86_64-linux-gnu/libcuda.so.1
+
+# For driver 615.71.09
+sudo python3 patches/libcuda/patch-libcuda-p2p-615.py /usr/lib/x86_64-linux-gnu/libcuda.so.1
+```
 
 ## Requirements
 

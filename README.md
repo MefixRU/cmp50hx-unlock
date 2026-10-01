@@ -78,10 +78,13 @@ Requirements:
 - IOMMU in passthrough mode (`iommu=pt`)
 - ACS disabled on the PCIe root ports (`pci=...disable_acs_redir=<root_port_bdf>`)
 
+The `libcuda.so.1` patch supports both the 610.x and 615.x driver series.
+`install.sh` automatically detects your driver version and applies the correct
+patch script (either `patch-libcuda-p2p-610.py` or `patch-libcuda-p2p-615.py`).
+
 See [docs/MIXED_GENERATION_P2P.md](docs/MIXED_GENERATION_P2P.md) for the complete
 setup guide, including how to identify root ports, example kernel parameters,
-and verification steps. The `install.sh` script applies the libcuda patch
-automatically after installing the kernel modules.
+and verification steps.
 
 The rest of this file is the working record for the five CMP50HX patches in
 `patches/cmp50hx/`. It explains the code path, the reason for each change, the
