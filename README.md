@@ -120,7 +120,7 @@ idle-power solution.
 On a fresh Ubuntu or Debian system with a CMP 50HX (`10de:1e09`) installed:
 
 ```bash
-curl -fsSL https://xrip.github.io/cmp50hx-unlock/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/MefixRU/cmp50hx-unlock/master/install.sh | sudo bash
 ```
 
 The installer adds the build tools, installs the NVIDIA `610.43.03` userland

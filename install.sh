@@ -2,7 +2,7 @@
 # CMP 50HX (10de:1e09) all-feature installer for
 # Ubuntu/Debian. The card is auto-detected; force it with --card.
 #
-#   curl -fsSL https://raw.githubusercontent.com/xrip/cmp50hx-unlock/master/install.sh | sudo bash
+#   curl -fsSL https://raw.githubusercontent.com/MefixRU/cmp50hx-unlock/master/install.sh | sudo bash
 #
 # Options:
 #   --card cmp50hx           force the card instead of auto-detecting

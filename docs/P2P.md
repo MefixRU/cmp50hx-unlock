@@ -24,4 +24,4 @@ Notes:
   `CAN Access Peer Device` for every pair.
 
 Full thread with lspci/ReBAR output and numbers:
-https://github.com/xrip/cmp50hx-unlock/issues/14
+https://github.com/MefixRU/cmp50hx-unlock/issues/14
