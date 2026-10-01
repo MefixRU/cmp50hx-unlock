@@ -40,6 +40,60 @@ log() { printf '[%s] %s\n' "$(date -u +%H:%M:%S)" "$*"; }
 die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 trap 'die "install failed at line ${LINENO}; see output above"' ERR
 
+# Find the installed libcuda.so.1 file
+find_libcuda() {
+    local paths=(
+        "/usr/lib/x86_64-linux-gnu/libcuda.so.1"
+        "/usr/lib64/libcuda.so.1"
+        "/usr/lib/libcuda.so.1"
+    )
+    for p in "${paths[@]}"; do
+        if [[ -f "${p}" ]]; then
+            echo "${p}"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Apply the libcuda.so.1 patch for mixed-generation P2P
+apply_libcuda_patch() {
+    local LIBCUDA
+    LIBCUDA="$(find_libcuda)" || {
+        log "WARNING: libcuda.so.1 not found; skipping mixed-generation P2P patch"
+        return 0
+    }
+
+    local BAK="${LIBCUDA}.bak"
+    local PATCH_SCRIPT="${install_dir}/patches/libcuda/patch-libcuda-p2p.py"
+
+    # Check if already patched (backup exists)
+    if [[ -f "${BAK}" ]]; then
+        log "libcuda.so.1 already patched (backup at ${BAK}); skipping"
+        return 0
+    fi
+
+    if [[ ! -f "${PATCH_SCRIPT}" ]]; then
+        log "WARNING: libcuda patch script not found at ${PATCH_SCRIPT}; skipping"
+        return 0
+    fi
+
+    log "applying libcuda.so.1 patch for mixed-generation P2P (${LIBCUDA})"
+
+    # Create backup
+    cp -a "${LIBCUDA}" "${BAK}"
+    log "created backup at ${BAK}"
+
+    # Apply the patch
+    if python3 "${PATCH_SCRIPT}" "${LIBCUDA}"; then
+        log "libcuda.so.1 patched successfully"
+    else
+        # Restore from backup on failure
+        cp -a "${BAK}" "${LIBCUDA}"
+        die "libcuda.so.1 patch failed; restored original from backup"
+    fi
+}
+
 card=''
 idle_governor=0
 rebar_selector=8
@@ -279,7 +333,11 @@ else
     die "initramfs setup failed"
 fi
 
-# --- 6b. cmp50hx: PCIe Gen2 boot service --------------------------------------
+# --- 6b. apply libcuda.so.1 patch for mixed-generation P2P --------------------
+
+apply_libcuda_patch
+
+# --- 6c. cmp50hx: PCIe Gen2 boot service --------------------------------------
 
 if [[ "${card}" == cmp50hx ]]; then
     runtime_dir="${install_dir}/cmp50hx"
@@ -291,7 +349,7 @@ if [[ "${card}" == cmp50hx ]]; then
     log "installed and enabled cmp50hx-gen2.service (the card unlocks its PCIe speed registers a few minutes after boot; the service retrains to Gen2 then; NOT started now)"
 fi
 
-# --- 6c. optional idle P-state governor -------------------------------------
+# --- 6d. optional idle P-state governor -------------------------------------
 
 # CMP cards do not lower their own P-state request, so this supervisor forces
 # P8 while idle and returns to P16 on load. Optional and independent of the
@@ -328,7 +386,7 @@ else
     governor_state="not present in this repository copy"
 fi
 
-# --- 6d. tuning utility -----------------------------------------------------
+# --- 6e. tuning utility -----------------------------------------------------
 
 # Profile-driven power/clock/offset tuning. Ships a default profile file and
 # seeds /etc/cmp-tune.conf once, so later upgrades never clobber local edits.

@@ -1,4 +1,4 @@
-Русская версия: [README.RU.md](README.RU.md) · [20 GB guide](docs/20GB.md) · [20 GB guide (RU)](docs/20GB_RU.md)
+Русская версия: [README.RU.md](README.RU.md) · [20 GB guide](docs/20GB.md) · [20 GB guide (RU)](docs/20GB_RU.md) · [Mixed-Generation P2P](docs/MIXED_GENERATION_P2P.md)
 
 # CMP 50HX 610.43.03 unlock guide
 
@@ -65,6 +65,23 @@ stock driver's GSP boot accepts the pre-OS state cleanly. Full matrix in
 ReBAR, Gen2, and the RT-count override remain kernel patches (see the
 feature table in the directory README). Install guide, prerequisites,
 verification, and rollback: [`efi-unlock/README.md`](efi-unlock/README.md).
+
+## P2P between GPU generations (CMP 50HX + RTX 40 series, etc.)
+
+With the kernel patches (01–07) and the `libcuda.so.1` patch included in the
+installer, P2P memory access works between **different GPU generations**:
+CMP 50HX (Turing/TU102) + RTX 4070 (Ada/AD103), RTX 2080 Ti (Turing) + CMP 50HX,
+and similar combinations.
+
+Requirements:
+- Above 4G Decoding + Resizable BAR enabled in BIOS for **both** GPUs
+- IOMMU in passthrough mode (`iommu=pt`)
+- ACS disabled on the PCIe root ports (`pci=...disable_acs_redir=<root_port_bdf>`)
+
+See [docs/MIXED_GENERATION_P2P.md](docs/MIXED_GENERATION_P2P.md) for the complete
+setup guide, including how to identify root ports, example kernel parameters,
+and verification steps. The `install.sh` script applies the libcuda patch
+automatically after installing the kernel modules.
 
 The rest of this file is the working record for the five CMP50HX patches in
 `patches/cmp50hx/`. It explains the code path, the reason for each change, the
